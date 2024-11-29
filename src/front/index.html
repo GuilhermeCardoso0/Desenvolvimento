@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Cadastro de Pets</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input, button, select {
+      padding: 10px;
+      font-size: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+    .actions button {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gerenciamento de Pets</h1>
+
+    <!-- Formulário de Cadastro -->
+    <form id="petForm">
+      <input type="text" id="nome" placeholder="Nome do Pet" required>
+      <input type="text" id="especie" placeholder="Espécie (ex.: cachorro, gato)" required>
+      <input type="number" id="idade" placeholder="Idade" required>
+      <input type="text" id="tutor" placeholder="Nome do Tutor" required>
+      <input type="text" id="contatoTutor" placeholder="Contato do Tutor (opcional)">
+      <button type="submit">Adicionar Pet</button>
+    </form>
+
+    <!-- Campo de Busca -->
+    <input type="text" id="search" placeholder="Buscar por nome ou espécie">
+    <button onclick="searchPets()">Buscar</button>
+
+    <!-- Lista de Pets -->
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Espécie</th>
+          <th>Idade</th>
+          <th>Tutor</th>
+          <th>Contato</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="petsTable">
+        <!-- Dados preenchidos dinamicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const apiUrl = "http://localhost:3000/api/pets";
+
+    // Função para buscar todos os pets
+    async function fetchPets() {
+      const response = await fetch(apiUrl);
+      const pets = await response.json();
+      const tableBody = document.getElementById("petsTable");
+      tableBody.innerHTML = ""; // Limpa a tabela
+
+      pets.forEach(pet => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${pet.nome}</td>
+          <td>${pet.especie}</td>
+          <td>${pet.idade}</td>
+          <td>${pet.tutor}</td>
+          <td>${pet.contatoTutor || "-"}</td>
+          <td class="actions">
+            <button onclick="editPet('${pet._id}')">Editar</button>
+            <button onclick="deletePet('${pet._id}')">Excluir</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // Função para adicionar um pet
+    document.getElementById("petForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const pet = {
+        nome: document.getElementById("nome").value,
+        especie: document.getElementById("especie").value,
+        idade: parseInt(document.getElementById("idade").value),
+        tutor: document.getElementById("tutor").value,
+        contatoTutor: document.getElementById("contatoTutor").value || undefined
+      };
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pet)
+      });
+
+      if (response.ok) {
+        alert("Pet adicionado com sucesso!");
+        e.target.reset();
+        fetchPets();
+      } else {
+        alert("Erro ao adicionar o pet.");
+      }
+    });
+
+    // Função para buscar pets por nome ou espécie
+    async function searchPets() {
+      const query = document.getElementById("search").value;
+      const response = await fetch(`${apiUrl}/search?query=${query}`);
+      const pets = await response.json();
+      const tableBody = document.getElementById("petsTable");
+      tableBody.innerHTML = ""; // Limpa a tabela
+
+      pets.forEach(pet => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${pet.nome}</td>
+          <td>${pet.especie}</td>
+          <td>${pet.idade}</td>
+          <td>${pet.tutor}</td>
+          <td>${pet.contatoTutor || "-"}</td>
+          <td class="actions">
+            <button onclick="editPet('${pet._id}')">Editar</button>
+            <button onclick="deletePet('${pet._id}')">Excluir</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // Função para excluir um pet
+    async function deletePet(id) {
+      if (confirm("Tem certeza que deseja excluir este pet?")) {
+        const response = await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+        if (response.ok) {
+          alert("Pet removido com sucesso!");
+          fetchPets();
+        } else {
+          alert("Erro ao remover o pet.");
+        }
+      }
+    }
+
+    // Inicializa a lista de pets ao carregar a página
+    window.onload = fetchPets;
+  </script>
+</body>
+</html>
